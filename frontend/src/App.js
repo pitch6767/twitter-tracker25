@@ -32,7 +32,8 @@ function App() {
     sound_alerts: true,
     desktop_notifications: true,
     monitoring_enabled: false,
-    min_quorum_threshold: 3
+    min_quorum_threshold: 3,
+    max_token_age_minutes: 10
   });
   const [uploadStatus, setUploadStatus] = useState('');
   const [bulkAccountsText, setBulkAccountsText] = useState('');
