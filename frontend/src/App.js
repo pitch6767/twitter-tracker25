@@ -376,27 +376,20 @@ function App() {
   };
 
   const openPhotonChart = (contractAddress) => {
-    // Updated Photon URL format and fallback options
-    const photonUrl = `https://photon-sol.tinyastro.io/?token=${contractAddress}`;
+    // Correct Photon URL format for direct token access
+    const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}?chainId=101`;
     
-    console.log('Opening Photon chart for:', contractAddress, 'URL:', photonUrl);
+    console.log('🚀 PHOTON TRADING:', contractAddress);
+    console.log('📊 Opening Photon 1s Chart:', photonUrl);
     
-    // Try to open Photon, with fallback to DexScreener if it fails
-    try {
-      const photonWindow = window.open(photonUrl, '_blank');
-      
-      // If popup was blocked or failed, provide fallback
-      if (!photonWindow || photonWindow.closed || typeof photonWindow.closed == 'undefined') {
-        console.log('Photon popup blocked, trying fallback...');
-        // Fallback to DexScreener which is more reliable
-        const dexScreenerUrl = `https://dexscreener.com/solana/${contractAddress}`;
-        window.open(dexScreenerUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening Photon chart:', error);
-      // Ultimate fallback to DexScreener
-      const dexScreenerUrl = `https://dexscreener.com/solana/${contractAddress}`;
-      window.open(dexScreenerUrl, '_blank');
+    // Force open in new tab - critical for meme coin trading speed
+    const photonWindow = window.open(photonUrl, '_blank', 'noopener,noreferrer');
+    
+    if (!photonWindow) {
+      console.error('❌ POPUP BLOCKED! Enable popups for instant Photon access');
+      alert('⚠️ POPUP BLOCKED!\n\nFor 1-second meme coin trading, you MUST allow popups.\nCheck your browser popup settings.');
+    } else {
+      console.log('✅ Photon chart opened - Ready for 1s trading!');
     }
   };
 
