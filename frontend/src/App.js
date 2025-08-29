@@ -382,8 +382,11 @@ function App() {
     window.open(photonUrl, '_blank');
   };
   
-  // Make function globally accessible
-  window.openPhotonChart = openPhotonChart;
+  // Ensure function is globally accessible on component mount
+  useEffect(() => {
+    window.openPhotonChart = openPhotonChart;
+    console.log('✅ openPhotonChart function loaded globally');
+  }, []);
 
   const checkIfAccountExists = (username) => {
     const cleanUsername = username.toLowerCase().replace('@', '');
