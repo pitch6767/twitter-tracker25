@@ -666,25 +666,14 @@ function App() {
                 ⏱️
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => updateSettings({...settings, max_token_age_minutes: Math.max(1, settings.max_token_age_minutes - 1)})}
-                      className="w-8 h-8 p-0 text-lg font-bold"
-                    >
-                      -
-                    </Button>
-                    <div className={`w-16 h-8 flex items-center justify-center text-xl font-bold border rounded ${settings.dark_mode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white border-gray-300'}`}>
-                      {settings.max_token_age_minutes}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => updateSettings({...settings, max_token_age_minutes: Math.min(60, settings.max_token_age_minutes + 1)})}
-                      className="w-8 h-8 p-0 text-lg font-bold"
-                    >
-                      +
-                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={settings.max_token_age_minutes}
+                      onChange={(e) => updateSettings({...settings, max_token_age_minutes: parseInt(e.target.value) || 10})}
+                      className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    />
                   </div>
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Max Token Age (min)
