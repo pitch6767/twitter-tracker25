@@ -337,8 +337,51 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
         else:
             logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
 
+async def is_new_token(contract_address: str) -> bool:
+    """Check if this is a genuinely NEW token - not an existing established one"""
+    try:
+        # Use a simple API check to see if token is established
+        async with aiohttp.ClientSession() as session:
+            # Check DexScreener API for existing token data
+            dex_url = f"https://api.dexscreener.com/latest/dex/tokens/{contract_address}"
+            
+            async with session.get(dex_url, timeout=5) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    # If token has pairs, check if it's too established
+                    if data.get('pairs'):
+                        pairs = data['pairs']
+                        for pair in pairs:
+                            # Skip if token has high market cap (established token)
+                            market_cap = pair.get('marketCap', 0)
+                            if market_cap and market_cap > 100000:  # > $100k market cap = established
+                                logger.info(f"❌ SKIPPING established token {contract_address} - Market cap: ${market_cap:,}")
+                                return False
+                            
+                            # Skip if token has high volume (established)
+                            volume_24h = pair.get('volume', {}).get('h24', 0)
+                            if volume_24h and volume_24h > 50000:  # > $50k daily volume = established
+                                logger.info(f"❌ SKIPPING established token {contract_address} - 24h volume: ${volume_24h:,}")
+                                return False
+                    
+                    # If we reach here, it's likely a new/small token
+                    logger.info(f"✅ NEW TOKEN detected: {contract_address} - Low market cap/volume")
+                    return True
+                else:
+                    # If API fails or token not found, assume it's new
+                    logger.info(f"✅ NEW TOKEN detected: {contract_address} - Not found in DexScreener (very new)")
+                    return True
+                    
+    except Exception as e:
+        logger.warning(f"Token validation error for {contract_address}: {e}")
+        # If validation fails, assume it's new to avoid missing opportunities
+        return True
+    
+    return True
+
 async def process_ca_alert(contract_address: str, username: str, tweet_id: str, tweet_url: str, tweet_text: str):
-    """Process and create INSTANT CA alerts - NO dependency on Name Alerts for speed"""
+    """Process and create INSTANT CA alerts for NEW TOKENS ONLY"""
     
     # Check if CA alert already exists
     existing_ca = await db.ca_alerts.find_one({"contract_address": contract_address})
@@ -346,11 +389,16 @@ async def process_ca_alert(contract_address: str, username: str, tweet_id: str, 
         logger.info(f"CA alert already exists for {contract_address}")
         return  # Only one alert per CA
     
+    # 🚀 NEW TOKEN FILTER - Only alert on genuinely new meme coins
+    if not await is_new_token(contract_address):
+        logger.info(f"🛑 FILTERING OUT established token: {contract_address}")
+        return  # Skip established tokens
+    
     # Extract potential token name from the tweet (fallback if no clear token name)
     token_names = await extract_token_names(tweet_text)
-    token_name = token_names[0] if token_names else "UNKNOWN"
+    token_name = token_names[0] if token_names else "NEW"
     
-    # CREATE CA ALERT IMMEDIATELY - NO WAITING FOR NAME ALERTS
+    # CREATE CA ALERT IMMEDIATELY - ONLY FOR NEW TOKENS
     alert = CAAlert(
         contract_address=contract_address,
         token_name=token_name,
@@ -363,8 +411,8 @@ async def process_ca_alert(contract_address: str, username: str, tweet_id: str, 
     
     await db.ca_alerts.insert_one(alert.dict())
     
-    logger.info(f"🚨 INSTANT CA ALERT: {token_name} - {contract_address} by @{username}")
-    logger.info(f"⚡ No delay - Perfect for meme coin trading!")
+    logger.info(f"🚨 NEW MEME COIN ALERT: {token_name} - {contract_address} by @{username}")
+    logger.info(f"⚡ Fresh launch detected - Perfect for early trading!")
     
     # Broadcast CA alert IMMEDIATELY
     await manager.broadcast({
