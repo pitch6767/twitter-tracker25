@@ -375,13 +375,15 @@ function App() {
     window.open(tweetUrl, '_blank');
   };
 
+  // GLOBAL function for Photon charts - accessible from onClick events
   const openPhotonChart = (contractAddress) => {
-    // Exact Photon format as provided by user
     const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}`;
-    
     console.log('🚀 PHOTON:', photonUrl);
     window.open(photonUrl, '_blank');
   };
+  
+  // Make function globally accessible
+  window.openPhotonChart = openPhotonChart;
 
   const checkIfAccountExists = (username) => {
     const cleanUsername = username.toLowerCase().replace('@', '');
