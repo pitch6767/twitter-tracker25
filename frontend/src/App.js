@@ -638,19 +638,17 @@ function App() {
 
           <Card className={settings.dark_mode ? 'bg-gray-800 border-gray-700' : ''}>
             <CardContent className="p-6">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center justify-center text-center">
                 🎯
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={settings.min_quorum_threshold}
-                      onChange={(e) => updateSettings({...settings, min_quorum_threshold: parseInt(e.target.value) || 3})}
-                      className={`w-20 h-12 text-3xl font-bold text-center mx-1 ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
-                    />
-                  </div>
+                <div className="mt-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.min_quorum_threshold}
+                    onChange={(e) => updateSettings({...settings, min_quorum_threshold: parseInt(e.target.value) || 3})}
+                    className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                  />
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Min Accounts Alert
                   </p>
