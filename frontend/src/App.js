@@ -376,21 +376,11 @@ function App() {
   };
 
   const openPhotonChart = (contractAddress) => {
-    // Correct Photon URL format for direct token access
-    const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}?chainId=101`;
+    // Exact Photon format as provided by user
+    const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}`;
     
-    console.log('🚀 PHOTON TRADING:', contractAddress);
-    console.log('📊 Opening Photon 1s Chart:', photonUrl);
-    
-    // Force open in new tab - critical for meme coin trading speed
-    const photonWindow = window.open(photonUrl, '_blank', 'noopener,noreferrer');
-    
-    if (!photonWindow) {
-      console.error('❌ POPUP BLOCKED! Enable popups for instant Photon access');
-      alert('⚠️ POPUP BLOCKED!\n\nFor 1-second meme coin trading, you MUST allow popups.\nCheck your browser popup settings.');
-    } else {
-      console.log('✅ Photon chart opened - Ready for 1s trading!');
-    }
+    console.log('🚀 PHOTON:', photonUrl);
+    window.open(photonUrl, '_blank');
   };
 
   const checkIfAccountExists = (username) => {
