@@ -660,19 +660,17 @@ function App() {
           {/* Max Token Age Card */}
           <Card className={`${settings.dark_mode ? 'bg-gray-800 border-gray-700' : ''} hover:shadow-lg transition-shadow`}>
             <CardContent className="p-6">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center justify-center text-center">
                 ⏱️
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={settings.max_token_age_minutes}
-                      onChange={(e) => updateSettings({...settings, max_token_age_minutes: parseInt(e.target.value) || 10})}
-                      className={`w-20 h-12 text-3xl font-bold text-center mx-1 ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
-                    />
-                  </div>
+                <div className="mt-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={settings.max_token_age_minutes}
+                    onChange={(e) => updateSettings({...settings, max_token_age_minutes: parseInt(e.target.value) || 10})}
+                    className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                  />
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Max Token Age (min)
                   </p>
