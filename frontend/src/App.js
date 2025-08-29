@@ -376,10 +376,28 @@ function App() {
   };
 
   const openPhotonChart = (contractAddress) => {
-    // Try the correct Photon URL format
-    const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}`;
+    // Updated Photon URL format and fallback options
+    const photonUrl = `https://photon-sol.tinyastro.io/?token=${contractAddress}`;
+    
     console.log('Opening Photon chart for:', contractAddress, 'URL:', photonUrl);
-    window.open(photonUrl, '_blank');
+    
+    // Try to open Photon, with fallback to DexScreener if it fails
+    try {
+      const photonWindow = window.open(photonUrl, '_blank');
+      
+      // If popup was blocked or failed, provide fallback
+      if (!photonWindow || photonWindow.closed || typeof photonWindow.closed == 'undefined') {
+        console.log('Photon popup blocked, trying fallback...');
+        // Fallback to DexScreener which is more reliable
+        const dexScreenerUrl = `https://dexscreener.com/solana/${contractAddress}`;
+        window.open(dexScreenerUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening Photon chart:', error);
+      // Ultimate fallback to DexScreener
+      const dexScreenerUrl = `https://dexscreener.com/solana/${contractAddress}`;
+      window.open(dexScreenerUrl, '_blank');
+    }
   };
 
   const checkIfAccountExists = (username) => {
