@@ -648,7 +648,7 @@ function App() {
                       max="10"
                       value={settings.min_quorum_threshold}
                       onChange={(e) => updateSettings({...settings, min_quorum_threshold: parseInt(e.target.value) || 3})}
-                      className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                      className={`w-20 h-12 text-3xl font-bold text-center mx-1 ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
                     />
                   </div>
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
