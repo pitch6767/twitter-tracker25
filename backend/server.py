@@ -338,13 +338,7 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
             logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
 
 async def process_ca_alert(contract_address: str, username: str, tweet_id: str, tweet_url: str, tweet_text: str):
-    """Process and create CA alerts - ONLY if there's already a Name Alert for the same token"""
-    # Extract potential token name from the tweet
-    token_names = await extract_token_names(tweet_text)
-    
-    if not token_names:
-        logger.info(f"No token names found in CA tweet from {username}")
-        return
+    """Process and create INSTANT CA alerts - NO dependency on Name Alerts for speed"""
     
     # Check if CA alert already exists
     existing_ca = await db.ca_alerts.find_one({"contract_address": contract_address})
@@ -352,36 +346,14 @@ async def process_ca_alert(contract_address: str, username: str, tweet_id: str, 
         logger.info(f"CA alert already exists for {contract_address}")
         return  # Only one alert per CA
     
-    # Get current settings for quorum threshold
-    settings = await db.app_settings.find_one() or {}
-    min_threshold = settings.get('min_quorum_threshold', 3)
+    # Extract potential token name from the tweet (fallback if no clear token name)
+    token_names = await extract_token_names(tweet_text)
+    token_name = token_names[0] if token_names else "UNKNOWN"
     
-    # Check if there's already a Name Alert for any of these token names
-    matching_name_alert = None
-    matching_token_name = None
-    
-    for token_name in token_names:
-        name_alert = await db.name_alerts.find_one({
-            "token_name": token_name,
-            "is_active": True,
-            "quorum_count": {"$gte": min_threshold}
-        })
-        
-        if name_alert:
-            matching_name_alert = name_alert
-            matching_token_name = token_name
-            break
-    
-    # Only create CA alert if there's a qualifying Name Alert first
-    if not matching_name_alert:
-        logger.info(f"No qualifying Name Alert found for token names {token_names} from {username}. CA alert skipped.")
-        logger.info(f"Required: Name Alert with {min_threshold}+ accounts for same token")
-        return
-    
-    # Create CA alert since we found a matching Name Alert
+    # CREATE CA ALERT IMMEDIATELY - NO WAITING FOR NAME ALERTS
     alert = CAAlert(
         contract_address=contract_address,
-        token_name=matching_token_name,
+        token_name=token_name,
         pump_fun_url=f"https://pump.fun/{contract_address}",
         solscan_url=f"https://solscan.io/account/{contract_address}",
         account_username=username,
@@ -391,10 +363,10 @@ async def process_ca_alert(contract_address: str, username: str, tweet_id: str, 
     
     await db.ca_alerts.insert_one(alert.dict())
     
-    logger.info(f"CA Alert created for {matching_token_name} - contract {contract_address}")
-    logger.info(f"Linked to existing Name Alert with {matching_name_alert['quorum_count']} accounts")
+    logger.info(f"🚨 INSTANT CA ALERT: {token_name} - {contract_address} by @{username}")
+    logger.info(f"⚡ No delay - Perfect for meme coin trading!")
     
-    # Broadcast CA alert
+    # Broadcast CA alert IMMEDIATELY
     await manager.broadcast({
         "type": "ca_alert",
         "data": alert.dict()
