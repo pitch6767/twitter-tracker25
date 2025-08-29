@@ -96,6 +96,7 @@ class AppSettings(BaseModel):
     max_versions: int = 20
     monitoring_enabled: bool = False
     min_quorum_threshold: int = 3  # Minimum accounts needed to trigger name alert
+    max_token_age_minutes: int = 10  # Maximum age for new token alerts (default 10 minutes)
 
 # WebSocket Manager
 class ConnectionManager:
