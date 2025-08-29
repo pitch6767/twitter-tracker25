@@ -647,23 +647,9 @@ function App() {
                     max="10"
                     value={settings.min_quorum_threshold}
                     onChange={(e) => updateSettings({...settings, min_quorum_threshold: parseInt(e.target.value) || 3})}
-                    className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
-                    style={{
-                      WebkitAppearance: 'none',
-                      MozAppearance: 'textfield'
-                    }}
+                    className={`w-20 h-12 text-2xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    style={{fontSize: '24px', padding: '4px'}}
                   />
-                  <style jsx>{`
-                    input[type="number"]::-webkit-outer-spin-button,
-                    input[type="number"]::-webkit-inner-spin-button {
-                      -webkit-appearance: none;
-                      margin: 0;
-                      width: 20px;
-                      height: 100%;
-                      cursor: pointer;
-                      background: transparent;
-                    }
-                  `}</style>
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Min Accounts Alert
                   </p>
