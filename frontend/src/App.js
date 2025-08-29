@@ -642,25 +642,14 @@ function App() {
                 🎯
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => updateSettings({...settings, min_quorum_threshold: Math.max(1, settings.min_quorum_threshold - 1)})}
-                      className="w-8 h-8 p-0 text-lg font-bold"
-                    >
-                      -
-                    </Button>
-                    <div className={`w-16 h-8 flex items-center justify-center text-xl font-bold border rounded ${settings.dark_mode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white border-gray-300'}`}>
-                      {settings.min_quorum_threshold}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => updateSettings({...settings, min_quorum_threshold: Math.min(10, settings.min_quorum_threshold + 1)})}
-                      className="w-8 h-8 p-0 text-lg font-bold"
-                    >
-                      +
-                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={settings.min_quorum_threshold}
+                      onChange={(e) => updateSettings({...settings, min_quorum_threshold: parseInt(e.target.value) || 3})}
+                      className={`w-20 h-12 text-3xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    />
                   </div>
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
                     Min Accounts Alert
