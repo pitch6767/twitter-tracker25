@@ -672,7 +672,7 @@ function App() {
                       max="60"
                       value={settings.max_token_age_minutes}
                       onChange={(e) => updateSettings({...settings, max_token_age_minutes: parseInt(e.target.value) || 10})}
-                      className={`w-24 h-12 text-2xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                      className={`w-20 h-10 text-xl font-bold text-center ${settings.dark_mode ? 'bg-gray-700 text-white' : 'bg-white'}`}
                     />
                   </div>
                   <p className={`text-sm mt-1 ${settings.dark_mode ? 'text-gray-400' : 'text-gray-500'}`}>
