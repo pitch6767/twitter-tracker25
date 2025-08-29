@@ -338,44 +338,42 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
             logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
 
 async def is_new_token(contract_address: str) -> bool:
-    """Check if this is a genuinely NEW token - not an existing established one"""
+    """Check if this contract is MINUTES old - catch fresh launches only"""
     try:
-        # Use a simple API check to see if token is established
         async with aiohttp.ClientSession() as session:
-            # Check DexScreener API for existing token data
-            dex_url = f"https://api.dexscreener.com/latest/dex/tokens/{contract_address}"
+            # Check Solscan API for token creation time
+            solscan_url = f"https://public-api.solscan.io/account/{contract_address}"
             
-            async with session.get(dex_url, timeout=5) as response:
+            async with session.get(solscan_url, timeout=5) as response:
                 if response.status == 200:
                     data = await response.json()
                     
-                    # If token has pairs, check if it's too established
-                    if data.get('pairs'):
-                        pairs = data['pairs']
-                        for pair in pairs:
-                            # Skip if token has high market cap (established token)
-                            market_cap = pair.get('marketCap', 0)
-                            if market_cap and market_cap > 100000:  # > $100k market cap = established
-                                logger.info(f"❌ SKIPPING established token {contract_address} - Market cap: ${market_cap:,}")
-                                return False
-                            
-                            # Skip if token has high volume (established)
-                            volume_24h = pair.get('volume', {}).get('h24', 0)
-                            if volume_24h and volume_24h > 50000:  # > $50k daily volume = established
-                                logger.info(f"❌ SKIPPING established token {contract_address} - 24h volume: ${volume_24h:,}")
-                                return False
-                    
-                    # If we reach here, it's likely a new/small token
-                    logger.info(f"✅ NEW TOKEN detected: {contract_address} - Low market cap/volume")
-                    return True
+                    # Get token creation timestamp
+                    created_time = data.get('createdTime')
+                    if created_time:
+                        import time
+                        current_time = time.time()
+                        token_age_minutes = (current_time - created_time) / 60
+                        
+                        # Only alert if token is less than 30 minutes old
+                        if token_age_minutes <= 30:
+                            logger.info(f"🚨 FRESH LAUNCH: {contract_address} - {token_age_minutes:.1f} minutes old!")
+                            return True
+                        else:
+                            logger.info(f"❌ TOO OLD: {contract_address} - {token_age_minutes:.1f} minutes old")
+                            return False
+                    else:
+                        # If no creation time, assume it's new
+                        logger.info(f"✅ NEW: {contract_address} - No creation time found (very fresh)")
+                        return True
                 else:
-                    # If API fails or token not found, assume it's new
-                    logger.info(f"✅ NEW TOKEN detected: {contract_address} - Not found in DexScreener (very new)")
+                    # If not found in Solscan, it's extremely new
+                    logger.info(f"🔥 ULTRA FRESH: {contract_address} - Not indexed yet!")
                     return True
                     
     except Exception as e:
-        logger.warning(f"Token validation error for {contract_address}: {e}")
-        # If validation fails, assume it's new to avoid missing opportunities
+        logger.warning(f"Token age check failed for {contract_address}: {e}")
+        # If check fails, assume it's new to avoid missing opportunities
         return True
     
     return True
