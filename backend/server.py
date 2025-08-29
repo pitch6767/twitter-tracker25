@@ -339,8 +339,12 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
             logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
 
 async def is_new_token(contract_address: str) -> bool:
-    """Check if this contract is MINUTES old - catch fresh launches only"""
+    """Check if this contract is within the configured age limit - catch ultra-fresh launches"""
     try:
+        # Get user's preferred max age setting
+        settings = await db.app_settings.find_one() or {}
+        max_age_minutes = settings.get('max_token_age_minutes', 10)  # Default 10 minutes
+        
         async with aiohttp.ClientSession() as session:
             # Check Solscan API for token creation time
             solscan_url = f"https://public-api.solscan.io/account/{contract_address}"
@@ -356,16 +360,16 @@ async def is_new_token(contract_address: str) -> bool:
                         current_time = time.time()
                         token_age_minutes = (current_time - created_time) / 60
                         
-                        # Only alert if token is less than 30 minutes old
-                        if token_age_minutes <= 30:
-                            logger.info(f"🚨 FRESH LAUNCH: {contract_address} - {token_age_minutes:.1f} minutes old!")
+                        # Only alert if token is within user's age limit
+                        if token_age_minutes <= max_age_minutes:
+                            logger.info(f"🚨 ULTRA FRESH: {contract_address} - {token_age_minutes:.1f} min old (limit: {max_age_minutes} min)")
                             return True
                         else:
-                            logger.info(f"❌ TOO OLD: {contract_address} - {token_age_minutes:.1f} minutes old")
+                            logger.info(f"❌ TOO OLD: {contract_address} - {token_age_minutes:.1f} min old (limit: {max_age_minutes} min)")
                             return False
                     else:
                         # If no creation time, assume it's new
-                        logger.info(f"✅ NEW: {contract_address} - No creation time found (very fresh)")
+                        logger.info(f"✅ FRESH: {contract_address} - No creation time (very new)")
                         return True
                 else:
                     # If not found in Solscan, it's extremely new
