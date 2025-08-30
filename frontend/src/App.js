@@ -376,6 +376,12 @@ function App() {
     window.open(tweetUrl, '_blank');
   };
 
+  const openPumpFun = (mintAddress) => {
+    const pumpUrl = `https://pump.fun/${mintAddress}`;
+    console.log('🚀 PUMP.FUN:', pumpUrl);
+    window.open(pumpUrl, '_blank');
+  };
+
   // GLOBAL function for Photon charts - accessible from onClick events
   const openPhotonChart = (contractAddress) => {
     const photonUrl = `https://photon-sol.tinyastro.io/en/lp/${contractAddress}`;
