@@ -321,10 +321,10 @@ async def monitor_accounts():
                     else:
                         tweet_timestamp = datetime.now(timezone.utc)
                     
-                    # Check for token names (Name Alerts) - with 5-minute freshness filter
+                    # Check for token names (Name Alerts)
                     token_names = await extract_token_names(tweet_text)
                     for token_name in token_names:
-                        await process_name_alert(token_name, username, tweet_id, tweet_url, tweet_timestamp)
+                        await process_name_alert(token_name, username, tweet_id, tweet_url)
                     
                     # Check for contract addresses (CA Alerts)
                     contract_address = is_pump_fun_contract(tweet_text)
