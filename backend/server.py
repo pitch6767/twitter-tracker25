@@ -337,19 +337,8 @@ async def monitor_accounts():
             logging.error(f"Monitoring error: {e}")
             await asyncio.sleep(10)
 
-async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str, tweet_timestamp: datetime = None):
-    """Process and create/update name alerts with quorum threshold + pump.fun integration - ONLY FRESH MENTIONS (5 min)"""
-    
-    # Check tweet freshness - only count mentions less than 5 minutes old
-    if tweet_timestamp:
-        current_time = datetime.now(timezone.utc)
-        tweet_age_minutes = (current_time - tweet_timestamp).total_seconds() / 60
-        
-        if tweet_age_minutes > 5:
-            logger.info(f"🕐 SKIPPING old mention: {token_name} by @{username} - {tweet_age_minutes:.1f} min old (limit: 5 min)")
-            return  # Skip mentions older than 5 minutes
-        else:
-            logger.info(f"⚡ FRESH mention: {token_name} by @{username} - {tweet_age_minutes:.1f} min old")
+async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str):
+    """Process and create/update name alerts with quorum threshold + pump.fun integration"""
     
     # Get current settings for quorum threshold
     settings = await db.app_settings.find_one() or {}
