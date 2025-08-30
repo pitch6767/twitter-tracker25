@@ -1116,17 +1116,17 @@ function App() {
                                   </div>
                                 </div>
                                 
-                                {/* Pump.fun Trading Button */}
-                                {alert.pump_fun_url && (
+                                {/* AXIOM PRO 1s Chart Button */}
+                                {alert.pump_fun_mint && (
                                   <div className="mt-4 flex justify-center">
                                     <Button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        window.open(alert.pump_fun_url, '_blank');
+                                        openAxiomPro(alert.pump_fun_mint);
                                       }}
-                                      className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
                                     >
-                                      🚀 Trade on Pump.fun
+                                      ⚡ AXIOM PRO (1s Chart)
                                     </Button>
                                   </div>
                                 )}
