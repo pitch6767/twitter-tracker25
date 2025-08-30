@@ -325,7 +325,7 @@ async def monitor_accounts():
             await asyncio.sleep(10)
 
 async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str):
-    """Process and create/update name alerts with quorum threshold"""
+    """Process and create/update name alerts with quorum threshold + pump.fun integration"""
     # Get current settings for quorum threshold
     settings = await db.app_settings.find_one() or {}
     min_threshold = settings.get('min_quorum_threshold', 3)  # Default to 3 if not set
@@ -351,17 +351,29 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
             
             # Only broadcast if we've reached the minimum threshold
             if new_quorum_count >= min_threshold:
+                # Search pump.fun for this token when threshold is reached
+                pump_fun_mint = await search_pump_fun_token(token_name)
+                
+                alert_data = {
+                    "id": str(existing_alert["_id"]),
+                    "token_name": token_name,
+                    "quorum_count": new_quorum_count,
+                    "accounts": existing_alert.get('accounts', []) + [{"username": username, "tweet_id": tweet_id, "tweet_url": tweet_url}],
+                    "first_seen": existing_alert.get('first_seen'),
+                    "pump_fun_mint": pump_fun_mint,
+                    "pump_fun_url": f"https://pump.fun/{pump_fun_mint}" if pump_fun_mint else None
+                }
+                
                 # Broadcast update
                 await manager.broadcast({
                     "type": "name_alert_update",
-                    "data": {
-                        "token_name": token_name,
-                        "quorum_count": new_quorum_count,
-                        "new_account": username,
-                        "threshold_met": True
-                    }
+                    "data": alert_data
                 })
-                logger.info(f"Name alert threshold reached for {token_name}: {new_quorum_count}/{min_threshold}")
+                
+                if pump_fun_mint:
+                    logger.info(f"🚀 Name alert + Pump.fun link: {token_name} → https://pump.fun/{pump_fun_mint}")
+                else:
+                    logger.info(f"🎯 Name alert threshold reached for {token_name}: {new_quorum_count}/{min_threshold} (no pump.fun match)")
         else:
             logger.info(f"Account {username} already contributed to {token_name} alert")
     else:
@@ -375,11 +387,20 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
         
         # Only broadcast if threshold is 1 or less (immediate alert)
         if min_threshold <= 1:
+            pump_fun_mint = await search_pump_fun_token(token_name)
+            alert_dict = alert.dict()
+            alert_dict["pump_fun_mint"] = pump_fun_mint
+            alert_dict["pump_fun_url"] = f"https://pump.fun/{pump_fun_mint}" if pump_fun_mint else None
+            
             await manager.broadcast({
                 "type": "name_alert",
-                "data": alert.dict()
+                "data": alert_dict
             })
-            logger.info(f"Immediate name alert for {token_name} (threshold: {min_threshold})")
+            
+            if pump_fun_mint:
+                logger.info(f"🚀 Immediate name alert + pump.fun: {token_name} → https://pump.fun/{pump_fun_mint}")
+            else:
+                logger.info(f"🎯 Immediate name alert for {token_name} (threshold: {min_threshold})")
         else:
             logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
 
