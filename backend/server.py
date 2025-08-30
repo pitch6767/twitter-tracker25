@@ -27,6 +27,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT_DIR = Path(__file__).parent
