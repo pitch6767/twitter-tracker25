@@ -308,10 +308,23 @@ async def monitor_accounts():
                     tweet_id = tweet.get('id_str', '')
                     tweet_url = f"https://twitter.com/{username}/status/{tweet_id}"
                     
-                    # Check for token names (Name Alerts)
+                    # Get tweet timestamp for freshness check
+                    tweet_created_at = tweet.get('created_at')
+                    tweet_timestamp = None
+                    if tweet_created_at:
+                        try:
+                            # Parse Twitter date format: "Wed Oct 05 19:14:05 +0000 2022"
+                            from dateutil import parser
+                            tweet_timestamp = parser.parse(tweet_created_at)
+                        except:
+                            tweet_timestamp = datetime.now(timezone.utc)
+                    else:
+                        tweet_timestamp = datetime.now(timezone.utc)
+                    
+                    # Check for token names (Name Alerts) - with 5-minute freshness filter
                     token_names = await extract_token_names(tweet_text)
                     for token_name in token_names:
-                        await process_name_alert(token_name, username, tweet_id, tweet_url)
+                        await process_name_alert(token_name, username, tweet_id, tweet_url, tweet_timestamp)
                     
                     # Check for contract addresses (CA Alerts)
                     contract_address = is_pump_fun_contract(tweet_text)
