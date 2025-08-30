@@ -222,8 +222,8 @@ class TwitterBrowserMonitor:
                         except NoSuchElementException:
                             continue
                     
-                    # Refresh page every 30 seconds to get new tweets
-                    time.sleep(30)
+                    # Refresh page every 15 seconds to get new tweets - ULTRA FAST!
+                    time.sleep(15)
                     driver.refresh()
                     
                     # Wait for page to reload
