@@ -153,64 +153,146 @@ def is_pump_fun_contract(tweet_text: str) -> Optional[str]:
             return addr
     return None
 
-async def get_twitter_user_tweets(username: str) -> List[Dict]:
-    """Fetch recent tweets from a Twitter user using Apify"""
-    if not TWITTER_API_KEY:
-        return []
+class TwitterBrowserMonitor:
+    """Real-time browser-based Twitter monitoring - bypasses API limits!"""
     
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    
-    # Use Apify Twitter scraper with token authentication
-    search_url = f"{APIFY_API_BASE}/acts/{TWITTER_SCRAPER_ACTOR_ID}/runs?token={TWITTER_API_KEY}"
-    
-    try:
-        # Apify API payload for Twitter scraper
-        payload = {
-            "searchTerms": [f"from:{username}"],
-            "maxTweets": 10,
-            "sort": "Latest"
-        }
+    def __init__(self):
+        self.drivers = {}
+        self.monitoring_threads = {}
+        self.stop_signals = {}
+        self.executor = ThreadPoolExecutor(max_workers=10)
         
-        async with aiohttp.ClientSession() as session:
-            async with session.post(search_url, headers=headers, json=payload) as response:
-                if response.status == 201:
-                    run_data = await response.json()
-                    run_id = run_data.get('data', {}).get('id')
+    def create_driver(self):
+        """Create headless Chrome driver"""
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        return driver
+        
+    def monitor_twitter_account(self, username: str):
+        """Monitor single Twitter account in real-time"""
+        try:
+            logger.info(f"🌐 Starting browser monitoring for @{username}")
+            
+            driver = self.create_driver()
+            self.drivers[username] = driver
+            
+            # Navigate to Twitter profile
+            twitter_url = f"https://twitter.com/{username}"
+            driver.get(twitter_url)
+            
+            # Wait for tweets to load
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='tweet']"))
+            )
+            
+            seen_tweets = set()
+            
+            while not self.stop_signals.get(username, False):
+                try:
+                    # Find all tweet elements
+                    tweets = driver.find_elements(By.CSS_SELECTOR, "[data-testid='tweet']")
                     
-                    if run_id:
-                        # Wait for the run to complete and get results
-                        results_url = f"{APIFY_API_BASE}/actor-runs/{run_id}/dataset/items?token={TWITTER_API_KEY}"
-                        
-                        # Poll for results with longer wait time
-                        await asyncio.sleep(10)  # Wait longer for scraper to complete
-                        
-                        async with session.get(results_url) as results_response:
-                            if results_response.status == 200:
-                                tweets = await results_response.json()
+                    for tweet_element in tweets[:5]:  # Check top 5 tweets
+                        try:
+                            # Extract tweet text
+                            text_element = tweet_element.find_element(By.CSS_SELECTOR, "[data-testid='tweetText']")
+                            tweet_text = text_element.text
+                            
+                            # Create unique tweet ID from text hash
+                            tweet_hash = hash(tweet_text + username)
+                            
+                            if tweet_hash not in seen_tweets:
+                                seen_tweets.add(tweet_hash)
+                                logger.info(f"🐦 NEW TWEET @{username}: {tweet_text[:100]}...")
                                 
-                                # Filter out demo results
-                                real_tweets = [tweet for tweet in tweets if not tweet.get('demo')]
+                                # Process tweet for token names and contracts
+                                asyncio.run_coroutine_threadsafe(
+                                    self.process_tweet_content(username, tweet_text, str(tweet_hash)),
+                                    asyncio.get_event_loop()
+                                )
                                 
-                                if real_tweets:
-                                    logger.info(f"Successfully fetched {len(real_tweets)} real tweets for {username}")
-                                    return real_tweets
-                                else:
-                                    logger.warning(f"Only demo results returned for {username} - may need account upgrade")
-                                    return []
-                            else:
-                                logger.error(f"Failed to get results for {username}: {results_response.status}")
-                                return []
-                    else:
-                        logger.error(f"No run ID returned for {username}")
-                        return []
-                else:
-                    response_text = await response.text()
-                    logger.error(f"Apify API error {response.status} for {username}: {response_text}")
-                    return []
-    except Exception as e:
-        logger.error(f"Error fetching tweets for {username}: {e}")
+                        except NoSuchElementException:
+                            continue
+                    
+                    # Refresh page every 30 seconds to get new tweets
+                    time.sleep(30)
+                    driver.refresh()
+                    
+                    # Wait for page to reload
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='tweet']"))
+                    )
+                    
+                except TimeoutException:
+                    logger.warning(f"⚠️ Timeout loading tweets for @{username}, retrying...")
+                    time.sleep(5)
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"❌ Browser monitoring error for @{username}: {e}")
+        finally:
+            if username in self.drivers:
+                self.drivers[username].quit()
+                del self.drivers[username]
+            logger.info(f"🛑 Stopped monitoring @{username}")
+            
+    async def process_tweet_content(self, username: str, tweet_text: str, tweet_id: str):
+        """Process tweet content for token names and contracts"""
+        tweet_url = f"https://twitter.com/{username}/status/{tweet_id}"
+        
+        # Check for token names (Name Alerts)
+        token_names = await extract_token_names(tweet_text)
+        for token_name in token_names:
+            await process_name_alert(token_name, username, tweet_id, tweet_url)
+        
+        # Check for contract addresses (CA Alerts)
+        contract_address = is_pump_fun_contract(tweet_text)
+        if contract_address:
+            await process_ca_alert(contract_address, username, tweet_id, tweet_url, tweet_text)
+    
+    def start_monitoring(self, usernames: List[str]):
+        """Start monitoring multiple Twitter accounts"""
+        for username in usernames:
+            if username not in self.monitoring_threads:
+                self.stop_signals[username] = False
+                thread = threading.Thread(
+                    target=self.monitor_twitter_account, 
+                    args=(username,),
+                    daemon=True
+                )
+                thread.start()
+                self.monitoring_threads[username] = thread
+                logger.info(f"✅ Started browser monitoring thread for @{username}")
+    
+    def stop_monitoring(self, username: str = None):
+        """Stop monitoring specific account or all accounts"""
+        if username:
+            self.stop_signals[username] = True
+            if username in self.drivers:
+                self.drivers[username].quit()
+        else:
+            # Stop all monitoring
+            for user in list(self.stop_signals.keys()):
+                self.stop_signals[user] = True
+            for driver in self.drivers.values():
+                driver.quit()
+            self.drivers.clear()
+
+# Global browser monitor instance
+browser_monitor = TwitterBrowserMonitor()
+
+async def get_twitter_user_tweets(username: str) -> List[Dict]:
+    """Legacy function - now handled by browser monitor"""
+    # This function is now bypassed by browser monitoring
+    # Keeping for compatibility
     return []
 
 async def extract_token_names(tweet_text: str) -> List[str]:
