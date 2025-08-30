@@ -376,6 +376,13 @@ function App() {
     window.open(tweetUrl, '_blank');
   };
 
+  const openAxiomPro = (mintAddress) => {
+    // AXIOM PRO trading URL format for 1-second charts
+    const axiomUrl = `https://axiom.trade/terminal/${mintAddress}?timeframe=1s`;
+    console.log('⚡ AXIOM PRO 1s Chart:', axiomUrl);
+    window.open(axiomUrl, '_blank');
+  };
+
   const openPumpFun = (mintAddress) => {
     const pumpUrl = `https://pump.fun/${mintAddress}`;
     console.log('🚀 PUMP.FUN:', pumpUrl);
