@@ -324,8 +324,20 @@ async def monitor_accounts():
             logging.error(f"Monitoring error: {e}")
             await asyncio.sleep(10)
 
-async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str):
-    """Process and create/update name alerts with quorum threshold + pump.fun integration"""
+async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str, tweet_timestamp: datetime = None):
+    """Process and create/update name alerts with quorum threshold + pump.fun integration - ONLY FRESH MENTIONS (5 min)"""
+    
+    # Check tweet freshness - only count mentions less than 5 minutes old
+    if tweet_timestamp:
+        current_time = datetime.now(timezone.utc)
+        tweet_age_minutes = (current_time - tweet_timestamp).total_seconds() / 60
+        
+        if tweet_age_minutes > 5:
+            logger.info(f"🕐 SKIPPING old mention: {token_name} by @{username} - {tweet_age_minutes:.1f} min old (limit: 5 min)")
+            return  # Skip mentions older than 5 minutes
+        else:
+            logger.info(f"⚡ FRESH mention: {token_name} by @{username} - {tweet_age_minutes:.1f} min old")
+    
     # Get current settings for quorum threshold
     settings = await db.app_settings.find_one() or {}
     min_threshold = settings.get('min_quorum_threshold', 3)  # Default to 3 if not set
@@ -371,9 +383,9 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
                 })
                 
                 if pump_fun_mint:
-                    logger.info(f"🚀 Name alert + Pump.fun link: {token_name} → https://pump.fun/{pump_fun_mint}")
+                    logger.info(f"🚀 FRESH Name alert + AXIOM PRO: {token_name} ({new_quorum_count}/{min_threshold}) → https://axiom.trade/terminal/{pump_fun_mint}")
                 else:
-                    logger.info(f"🎯 Name alert threshold reached for {token_name}: {new_quorum_count}/{min_threshold} (no pump.fun match)")
+                    logger.info(f"🎯 FRESH Name alert reached: {token_name} ({new_quorum_count}/{min_threshold}) - no pump.fun match")
         else:
             logger.info(f"Account {username} already contributed to {token_name} alert")
     else:
@@ -398,11 +410,11 @@ async def process_name_alert(token_name: str, username: str, tweet_id: str, twee
             })
             
             if pump_fun_mint:
-                logger.info(f"🚀 Immediate name alert + pump.fun: {token_name} → https://pump.fun/{pump_fun_mint}")
+                logger.info(f"🚀 INSTANT FRESH alert + AXIOM PRO: {token_name} → https://axiom.trade/terminal/{pump_fun_mint}")
             else:
-                logger.info(f"🎯 Immediate name alert for {token_name} (threshold: {min_threshold})")
+                logger.info(f"🎯 INSTANT FRESH alert: {token_name} (threshold: {min_threshold})")
         else:
-            logger.info(f"New token {token_name} detected (1/{min_threshold} accounts needed)")
+            logger.info(f"FRESH token {token_name} detected (1/{min_threshold} accounts needed)")
 
 async def is_new_token(contract_address: str) -> bool:
     """Check if this contract is within the configured age limit - catch ultra-fresh launches"""
