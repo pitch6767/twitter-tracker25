@@ -214,6 +214,51 @@ async def extract_token_names(tweet_text: str) -> List[str]:
     all_tokens = tokens + [tag.upper() for tag in hashtags]
     return list(set(all_tokens))  # Remove duplicates
 
+async def search_pump_fun_token(token_name: str) -> Optional[str]:
+    """Search pump.fun for the newest token with the given name"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Search pump.fun API for tokens with this name
+            search_url = f"https://frontend-api.pump.fun/coins?offset=0&limit=50&sort=created_timestamp&order=DESC&includeNsfw=true"
+            
+            async with session.get(search_url, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    # Search through recent coins for matching name/symbol
+                    for coin in data:
+                        coin_name = coin.get('name', '').upper()
+                        coin_symbol = coin.get('symbol', '').upper()
+                        search_name = token_name.upper()
+                        
+                        # Check if this token matches our search (name or symbol)
+                        if (search_name in coin_name or 
+                            search_name in coin_symbol or 
+                            coin_name in search_name or 
+                            coin_symbol in search_name):
+                            
+                            mint_address = coin.get('mint')
+                            created_timestamp = coin.get('created_timestamp', 0)
+                            
+                            # Only return if token is less than 24 hours old
+                            import time
+                            current_time = time.time()
+                            token_age_hours = (current_time - (created_timestamp / 1000)) / 3600
+                            
+                            if token_age_hours <= 24 and mint_address:
+                                logger.info(f"🎯 Found fresh pump.fun token: {coin_name} ({coin_symbol}) - {token_age_hours:.1f}h old")
+                                return mint_address
+                    
+                    logger.info(f"❌ No fresh pump.fun tokens found for: {token_name}")
+                    return None
+                else:
+                    logger.warning(f"Pump.fun search failed: {response.status}")
+                    return None
+                    
+    except Exception as e:
+        logger.error(f"Error searching pump.fun for {token_name}: {e}")
+        return None
+
 async def create_version_snapshot() -> Dict[str, Any]:
     """Create a complete snapshot of current app state"""
     def convert_objectid(obj):
