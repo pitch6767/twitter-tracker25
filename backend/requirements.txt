@@ -25,3 +25,4 @@ jq>=1.6.0
 typer>=0.9.0
 aiohttp>=3.9.0
 base58>=2.1.1
+python-dateutil>=2.8.2
