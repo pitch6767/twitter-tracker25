@@ -1102,6 +1102,21 @@ function App() {
                                     ))}
                                   </div>
                                 </div>
+                                
+                                {/* Pump.fun Trading Button */}
+                                {alert.pump_fun_url && (
+                                  <div className="mt-4 flex justify-center">
+                                    <Button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(alert.pump_fun_url, '_blank');
+                                      }}
+                                      className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2"
+                                    >
+                                      🚀 Trade on Pump.fun
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </AlertDescription>
