@@ -215,7 +215,7 @@ async def extract_token_names(tweet_text: str) -> List[str]:
     return list(set(all_tokens))  # Remove duplicates
 
 async def search_pump_fun_token(token_name: str) -> Optional[str]:
-    """Search pump.fun for the newest token with the given name"""
+    """Search pump.fun for ULTRA-FRESH tokens (max 5 minutes old) with the given name"""
     try:
         async with aiohttp.ClientSession() as session:
             # Search pump.fun API for tokens with this name
@@ -240,16 +240,18 @@ async def search_pump_fun_token(token_name: str) -> Optional[str]:
                             mint_address = coin.get('mint')
                             created_timestamp = coin.get('created_timestamp', 0)
                             
-                            # Only return if token is less than 24 hours old
+                            # ULTRA-FRESH FILTER: Only return if token is less than 5 MINUTES old
                             import time
                             current_time = time.time()
-                            token_age_hours = (current_time - (created_timestamp / 1000)) / 3600
+                            token_age_minutes = (current_time - (created_timestamp / 1000)) / 60
                             
-                            if token_age_hours <= 24 and mint_address:
-                                logger.info(f"🎯 Found fresh pump.fun token: {coin_name} ({coin_symbol}) - {token_age_hours:.1f}h old")
+                            if token_age_minutes <= 5 and mint_address:
+                                logger.info(f"🚨 ULTRA-FRESH pump.fun token: {coin_name} ({coin_symbol}) - {token_age_minutes:.1f} min old!")
                                 return mint_address
+                            elif mint_address:
+                                logger.info(f"🕐 TOO OLD pump.fun token: {coin_name} - {token_age_minutes:.1f} min old (limit: 5 min)")
                     
-                    logger.info(f"❌ No fresh pump.fun tokens found for: {token_name}")
+                    logger.info(f"❌ No ultra-fresh pump.fun tokens found for: {token_name} (all tokens > 5 min old)")
                     return None
                 else:
                     logger.warning(f"Pump.fun search failed: {response.status}")
