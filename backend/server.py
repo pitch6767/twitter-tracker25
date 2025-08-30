@@ -388,50 +388,39 @@ async def create_version_snapshot() -> Dict[str, Any]:
 
 # Background monitoring task
 async def monitor_accounts():
-    """Background task to monitor tracked accounts"""
+    """Background task to monitor tracked accounts using BROWSER MONITORING (no API calls)"""
     global monitoring_active
     
     while monitoring_active:
         try:
             accounts = await db.twitter_accounts.find({"is_active": True}).to_list(None)
+            active_usernames = [account['username'] for account in accounts]
             
-            for account in accounts:
-                username = account['username']
-                tweets = await get_twitter_user_tweets(username)
+            if active_usernames:
+                logger.info(f"🌐 Starting browser monitoring for {len(active_usernames)} accounts...")
                 
-                for tweet in tweets:
-                    tweet_text = tweet.get('text', '')
-                    tweet_id = tweet.get('id_str', '')
-                    tweet_url = f"https://twitter.com/{username}/status/{tweet_id}"
+                # Start browser monitoring for all active accounts
+                browser_monitor.start_monitoring(active_usernames)
+                
+                # Log monitoring status
+                logger.info(f"✅ Browser monitoring active for: {', '.join(active_usernames)}")
+                
+                # Keep monitoring alive (browser threads handle the actual monitoring)
+                while monitoring_active:
+                    await asyncio.sleep(60)  # Check every minute if monitoring should continue
                     
-                    # Get tweet timestamp for freshness check
-                    tweet_created_at = tweet.get('created_at')
-                    tweet_timestamp = None
-                    if tweet_created_at:
-                        try:
-                            # Parse Twitter date format: "Wed Oct 05 19:14:05 +0000 2022"
-                            from dateutil import parser
-                            tweet_timestamp = parser.parse(tweet_created_at)
-                        except:
-                            tweet_timestamp = datetime.now(timezone.utc)
-                    else:
-                        tweet_timestamp = datetime.now(timezone.utc)
-                    
-                    # Check for token names (Name Alerts)
-                    token_names = await extract_token_names(tweet_text)
-                    for token_name in token_names:
-                        await process_name_alert(token_name, username, tweet_id, tweet_url)
-                    
-                    # Check for contract addresses (CA Alerts)
-                    contract_address = is_pump_fun_contract(tweet_text)
-                    if contract_address:
-                        await process_ca_alert(contract_address, username, tweet_id, tweet_url, tweet_text)
-            
-            await asyncio.sleep(5)  # Check every 5 seconds for real-time monitoring
-            
+            else:
+                logger.info("No active accounts to monitor")
+                await asyncio.sleep(30)
+                
         except Exception as e:
-            logging.error(f"Monitoring error: {e}")
-            await asyncio.sleep(10)
+            logger.error(f"Error in monitor_accounts: {e}")
+            await asyncio.sleep(30)
+    
+    # Cleanup when monitoring stops
+    logger.info("🛑 Stopping browser monitoring...")
+    browser_monitor.stop_monitoring()
+    logger.info("✅ Browser monitoring stopped")
 
 async def process_name_alert(token_name: str, username: str, tweet_id: str, tweet_url: str):
     """Process and create/update name alerts with quorum threshold + pump.fun integration"""
